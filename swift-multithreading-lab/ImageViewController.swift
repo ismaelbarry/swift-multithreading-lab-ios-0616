@@ -19,11 +19,32 @@ class ImageViewController : UIViewController, UIScrollViewDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupViews()
+        
+        // Here we instantiate a UIActivityIndicatorView object for the property we just created with the stile of .WhiteLarge. We then tint the indicator so it fits the theme of our app, and finally align it with the main view.
+        activityIndicator = UIActivityIndicatorView(activityIndicatorStyle: .WhiteLarge)
+        activityIndicator.color = UIColor.cyanColor()
+        activityIndicator.center = view.center
+        
+        // This adds our activityIndicator to the view controller's view.
+        view.addSubview(activityIndicator)
     }
     
     @IBAction func antiqueButtonTapped(sender: AnyObject) {
-        filterImage { (result) in
-            result ? print("Image filtering complete") : print("Image filtering did not complete")
+        
+        // Presents and starts the activity indicator as soon as the antique button is tapped.
+        self.activityIndicator.startAnimating()
+        
+        let queue = NSOperationQueue()
+        
+        // We want the user to still be able to pan the image.
+        queue.qualityOfService = .UserInitiated
+        
+        // Because we put the filterImage method on a different queue.
+        queue.addOperationWithBlock {
+            
+            self.filterImage { (result) in
+                result ? print("Image filtering complete") : print("Image filtering did not complete")
+            }
         }
     }
     
@@ -59,9 +80,18 @@ class ImageViewController : UIViewController, UIScrollViewDelegate {
                 let finalResult = UIGraphicsGetImageFromCurrentImageContext()
                 UIGraphicsEndImageContext()
                 
-                print("Setting final result")
-                self.imageView?.image = finalResult
-                completion(true)
+                // All UI changes should be on the main queue.
+                NSOperationQueue.mainQueue().addOperationWithBlock({ 
+                    
+                    print("Setting final result")
+                    
+                    // Replacing the image view container to the finalResult (which is the updated antique picture) is a UI job.
+                    self.imageView?.image = finalResult
+                    completion(true)
+                    
+                    // Hides and stops the activity indicator when completion is over.
+                    self.activityIndicator.stopAnimating()
+                })
             }
         }
     }
